@@ -1,0 +1,62 @@
+import sys
+import os
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.linear_model import LinearRegression
+from sklearn.preprocessing import PolynomialFeatures
+
+# Add root path
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+from src.feature_engineering import prepare_training_data
+
+#Load Data
+data_path = os.path.join(os.path.dirname(__file__), "..", "data", "processed_data.csv")
+df = pd.read_csv(data_path)
+
+#Sample and prepare
+df_sampled = df.sample(n=5000, random_state=42) # interchangeable sample size
+X, y = prepare_training_data(df_sampled, penalty_weight=15.0)  # High penalty used for calculation
+
+#Polynomial model
+poly = PolynomialFeatures(degree=2)
+X_poly = poly.fit_transform(X)
+model = LinearRegression()
+model.fit(X_poly, y)
+
+#Prediction range
+temp_range = np.linspace(X['air_temperature'].min(), X['air_temperature'].max(), 200).reshape(-1, 1)
+temp_poly = poly.transform(temp_range)
+y_pred = model.predict(temp_poly)
+
+#Find optimal temp
+min_index = np.argmin(y_pred)
+optimal_temp = temp_range[min_index][0]
+optimal_penalty = y_pred[min_index]
+
+#log(meter_reading) vs. Temperature
+plt.figure(figsize=(10, 6))
+df_sampled['log_meter_reading'] = np.log1p(df_sampled['meter_reading'])
+
+plt.scatter(df_sampled['air_temperature'], df_sampled['meter_reading'], alpha=0.4, s=10, color='skyblue', label='Energy Use')
+
+# Regression curve
+plt.plot(temp_range, y_pred, color='red', linewidth=2, label='Regression on Penalized Energy')
+
+# Optimal temp marker
+plt.axvline(optimal_temp, color='green', linestyle='--', label=f"Optimal Temp ≈ {optimal_temp:.2f}°C")
+
+plt.title("Optimal Temperature Target Based on Comfort Penalty", fontsize=14)
+plt.xlabel("Indoor Temperature (°C)")
+plt.ylabel("Energy Use (log scale)")
+plt.grid(True, alpha=0.3)
+plt.legend()
+plt.tight_layout()
+
+# Save or show
+output_path = os.path.join(os.path.dirname(__file__), "..", "outputs", "figures", "optimal_temp_actual_energy.png")
+os.makedirs(os.path.dirname(output_path), exist_ok=True)
+plt.savefig(output_path, dpi=300)
+# plt.show()
+
+print(f"Optimal Temperature ≈ {optimal_temp:.2f}°C (based on penalized energy)")

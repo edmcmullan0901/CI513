@@ -1,0 +1,56 @@
+import sys
+import os
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.linear_model import LinearRegression
+from sklearn.preprocessing import PolynomialFeatures
+
+# Add root to sys.path
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
+from src.feature_engineering import prepare_training_data
+
+# Loads and prepares the data
+data_path = os.path.join(os.path.dirname(__file__), "..", "data", "processed_data.csv")
+df = pd.read_csv(data_path)
+X, y = prepare_training_data(df)
+
+#Polynomial features
+poly = PolynomialFeatures(degree=2)
+X_poly = poly.fit_transform(X)
+
+#Trains model
+model = LinearRegression()
+model.fit(X_poly, y)
+
+#Predicts across temperature range
+temp_range = np.linspace(X['air_temperature'].min(), X['air_temperature'].max(), 200).reshape(-1, 1)
+temp_poly = poly.transform(temp_range)
+predicted_penalty = model.predict(temp_poly)
+
+#Find the optimal temp
+min_index = np.argmin(predicted_penalty)
+optimal_temp = temp_range[min_index][0]
+optimal_penalty = predicted_penalty[min_index]
+
+#Plots result
+plt.figure(figsize=(10, 6))
+plt.plot(temp_range, predicted_penalty, label="Predicted Penalized Energy", color='red')
+plt.axvline(optimal_temp, color='green', linestyle='--', label=f"Optimal Temp ≈ {optimal_temp:.2f}°C")
+plt.title("Optimal Temperature Target Based on Comfort Penalty")
+plt.xlabel("Air Temperature (°C)")
+plt.ylabel("Penalized Energy (log units)")
+plt.legend()
+plt.grid(True)
+plt.tight_layout()
+
+# Save/show graph
+output_path = os.path.join(os.path.dirname(__file__), "..", "outputs", "figures", "optimal_temperature_curve.png")
+os.makedirs(os.path.dirname(output_path), exist_ok=True)
+plt.savefig(output_path, dpi=300)
+# plt.show()
+
+#Print result
+print(f"Optimal Temperature ≈ {optimal_temp:.2f}°C")
+

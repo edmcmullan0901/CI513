@@ -1,0 +1,41 @@
+import numpy as np
+import matplotlib.pyplot as plt
+import os
+
+#note : this graph is for demonstrative purposes on estimations only 
+
+# Simulated temperature range
+temps = np.linspace(10, 35, 100)
+
+# Simulated performance curves (estimations)
+traditional_energy = 100 + 1.5 * (temps - 22)**2
+intellicade_energy = 90 + 1.0 * (temps - 23.56)**2 
+
+# Optimal point
+optimal_temp = 23.56
+
+#Plotting
+plt.figure(figsize=(10, 6))
+
+plt.plot(temps, traditional_energy, label="Traditional HVAC", color="tab:blue", linewidth=2)
+plt.plot(temps, intellicade_energy, label="Intelliçade Optimized", color="tab:orange", linewidth=2)
+
+plt.axvline(optimal_temp, color='green', linestyle='--', label=f"Optimal Temp ({optimal_temp:.2f}°C)")
+
+plt.fill_between(temps, traditional_energy, intellicade_energy,
+                 where=(traditional_energy > intellicade_energy),
+                 interpolate=True, color='gray', alpha=0.2, label='Energy Savings')
+
+# Labels and formatting
+plt.title("Simulated HVAC Energy Usage vs Temperature", fontsize=14)
+plt.xlabel("Indoor Temperature (°C)")
+plt.ylabel("Energy Use (Simulated kWh)")
+plt.grid(True, alpha=0.3)
+plt.legend()
+plt.tight_layout()
+
+# Save/show graph
+output_path = os.path.join(os.path.dirname(__file__), "..", "outputs", "figures", "hvac_simulation_comparison.png")
+os.makedirs(os.path.dirname(output_path), exist_ok=True)
+plt.savefig(output_path, dpi=300)
+# plt.show()
